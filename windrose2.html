@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- JavaScript Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <title>Paragliding Wind xRose</title>
+    <style>
+        body {
+            font: 12px sans-serif;
+            text-align: center;
+        }
+
+        svg {
+            margin: 0px auto;
+            display: block;
+        }
+
+        path.arc {
+            opacity: 0.9;
+            transition: opacity 0.5s;
+        }
+
+        path.arc:hover {
+            opacity: 0.7;
+        }
+
+        .axis line,
+        .axis circle {
+            stroke: #cccccc;
+            stroke-width: 1px
+        }
+
+        .axis circle {
+            fill: none;
+        }
+
+        .r.axis text {
+            text-anchor: end
+        }
+
+        .tooltip {
+            position: absolute;
+            display: none;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 3px;
+            box-shadow: -3px 3px 15px #888;
+            color: white;
+            padding: 6px;
+        }
+
+        .colorBox {
+            float: left;
+            width: 15px;
+            height: 15px;
+            margin: 5px;
+            border: 1px solid rgba(0, 0, 0, .2);
+        }
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-2" align="center">
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card mt-2" style="width: 18rem;">
+                    <h6 class="mt-2">Options</h5>
+                        <div class="card-body" style="text-align: left;">
+                            <label for="clubSelector">Club</label>
+                            <select class="form-select" id="clubSelector">
+                                <option>Wessex</option>
+                                <option>Avon</option>
+                            </select>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="exampleRadios" id="viewSimple"
+                                    value="option1" checked>
+                                <label class="form-check-label" for="viewSimple">
+                                    Simple View
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="exampleRadios" id="viewMembership"
+                                    value="option2">
+                                <label class="form-check-label" for="viewMembership">
+                                    Membership Type
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="exampleRadios" id="viewRating"
+                                    value="option3">
+                                <label class="form-check-label" for="viewRating">
+                                    Rating
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="exampleRadios"
+                                    id="viewMembershipRating" value="option4">
+                                <label class="form-check-label" for="viewMembershipRating">
+                                    Membership & Rating
+                                </label>
+                            </div>
+                        </div>
+                </div>
+            </div>
+            <div class="col-lg-4 " id="membershipKey">
+                <div class="card mt-2" style="width: 18rem;">
+                    <h6>Membership Key</h6>
+                    <div class="card-body">
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: red;"></div> Members Only
+                        </span>
+                        </br>
+                        </br>
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: blue;"></div> Reciprocal Arrangement
+                        </span>
+                        </br>
+                        </br>
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: green;"></div> Open Site
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 " id="ratingKey">
+                <div class="card mt-2" style="width: 18rem;">
+                    <h6>Rating Key</h6>
+                    <div class="card-body">
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: purple;"></div> Pilot
+                        </span>
+                        </br>
+                        </br>
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: yellow;"></div> CP + 25
+                        </span>
+                        </br>
+                        </br>
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: cornflowerblue;"></div> CP + 10
+                        </span>
+                        </br>
+                        </br>
+                        <span style="float: left;">
+                            <div class="colorBox" style="background-color: lightblue;"></div> CP
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const width = 960,
+            height = 600,
+            chartRadius = height / 2 - 40,
+            levels = 8,
+            maxValue = 100,
+            angleSlice = ((45 / 2) * Math.PI / 180), //2 if allaxis2
+            labelFactor = 1.12,
+            wrapWidth = 60,
+            margin = 40,
+            allAxis = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        allAxis2 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        //Scale for the radius
+        var rScale = d3.scaleLinear()
+            .range([0, chartRadius])
+            .domain([0, maxValue]);
+
+        /////DATA
+        var membershipColors = {
+            'Members': 'red',
+            'Open': 'green',
+            'Reciprocal': 'blue',
+        }
+
+        var ratingColors = {
+            'Pilot': 'purple',
+            'CPplus25': 'yellow',
+            'CPplus10': 'cornflowerblue',
+            'CP': 'lightblue',
+        }
+
+        var data = [
+            {
+                site: 'Bell Hill',
+                club: 'Wessex',
+                start: 275,
+                end: 340,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/BellHill.pdf',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 7
+            },
+            {
+                site: 'Winklebury',
+                club: 'Wessex',
+                start: 275,
+                end: 340,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Winklebury.pdf',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 6
+            },
+            {
+                site: 'Whitesheet',
+                club: 'Wessex',
+                start: 260,
+                end: 280,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/WhiteSheet.pdf',
+                pgRating: 'CP',
+                hgRating: 'CPplus10',
+                membership: 'Open',
+                level: 5
+            },
+            {
+                site: 'Portland West',
+                club: 'Wessex',
+                start: 270,
+                end: 315,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/PortlandWest.pdf',
+                pgRating: 'Pilot',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 4,
+            },
+            {
+                site: 'Portland East',
+                club: 'Wessex',
+                start: 60,
+                end: 120,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/PortlandEast.pdf',
+                pgRating: 'Pilot',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 4,
+            },
+            {
+                site: 'Ringstead',
+                club: 'Wessex',
+                start: 210,
+                end: 260,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/RingsteadBay.pdf',
+                pgRating: 'CPplus10',
+                hgRating: 'Advanced Pilot',
+                membership: 'Open',
+                level: 6,
+            },
+            {
+                site: 'Monks Down',
+                club: 'Wessex',
+                start: 340,
+                end: 390,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Monksdown.pdf',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Members',
+                level: 7,
+            },
+            {
+                site: 'Ninebarrow Down',
+                club: 'Wessex',
+                start: 0,
+                end: 45,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Nine%20Barrow%20Down.pdf',
+                pgRating: 'CP',
+                hgRating: 'Unsuitable',
+                membership: 'Members',
+                level: 8,
+            },
+            {
+                site: 'Swallowcliff',
+                club: 'Wessex',
+                start: 290,
+                end: 335,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Swallowcliffe.pdf',
+                pgRating: 'CP',
+                hgRating: 'Unsuitable',
+                membership: 'Members',
+                level: 8,
+            },
+            {
+                site: 'Maiden Castle',
+                club: 'Wessex',
+                start: 330,
+                end: 390,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/MaidenCastle.pdf',
+                pgRating: 'CP',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 6,
+            },
+            {
+                site: 'Okeford',
+                club: 'Wessex',
+                start: 5,
+                end: 40,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/OkefordHill.pdf',
+                pgRating: 'CPplus10',
+                hgRating: 'CPplus10',
+                membership: 'Open',
+                level: 5,
+            },
+            {
+                site: 'Marleycombe',
+                club: 'Wessex',
+                start: 315,
+                end: 360,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Marleycombe.pdf',
+                pgRating: 'CP',
+                hgRating: 'CPplus10',
+                membership: 'Open',
+                level: 5,
+            },
+            {
+                site: 'Kimmeridge',
+                club: 'Wessex',
+                start: 210,
+                end: 270,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Kimmeridge.pdf',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 7,
+            },
+            {
+                site: 'St Aldhelms',
+                club: 'Wessex',
+                start: 225,
+                end: 270,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Kimmeridge.pdf',
+                pgRating: 'Pilot',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 8,
+            },
+
+            {
+                site: 'Barton on Sea',
+                club: 'Wessex',
+                start: 135,
+                end: 225,
+                siteGuideUrl: 'http://wessexhgpg.org.uk/Sites/SiteGuide/Barton.pdf',
+                pgRating: 'CPplus25',
+                hgRating: 'Unsuitable',
+                membership: 'Members',
+                level: 3,
+            },
+            {
+                site: 'Westbury White Horse',
+                club: 'Avon',
+                start: 275,
+                end: 380,
+                siteGuideUrl: "http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=14",
+                pgRating: 'CP',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 8,
+            }
+            ,
+            {
+                site: 'Selsley',
+                club: 'Avon',
+                start: 292.5,
+                end: 337.5,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=11',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 7,
+            },
+            {
+                site: 'Cam Long Down',
+                club: 'Avon',
+                start: 270,
+                end: 360,
+                siteGuideUrl: '',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 6,
+            },
+            {
+                site: 'Frocester',
+                club: 'Avon',
+                start: 270,
+                end: 315,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=6',
+                pgRating: 'Pilot',
+                hgRating: 'Unsuitable',
+                membership: 'Open',
+                level: 5,
+            },
+            {
+                site: 'Morgans',
+                club: 'Avon',
+                start: 280,
+                end: 350,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=9',
+                pgRating: 'Pilot',
+                hgRating: 'Pilot',
+                membership: 'Members',
+                level: 4,
+            },
+            {
+                site: 'Draycott',
+                club: 'Avon',
+                start: 200,
+                end: 230,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=5',
+                pgRating: 'Pilot',
+                hgRating: 'Pilot',
+                membership: 'Members',
+                level: 8,
+            },
+            {
+                site: 'Crook Peak',
+                club: 'Avon',
+                start: 180,
+                end: 247.5,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=4',
+                pgRating: 'Pilot',
+                hgRating: 'Pilot',
+                membership: 'Open',
+                level: 7,
+            },
+            {
+                site: 'Mere Rifle Range',
+                club: 'Avon',
+                start: 112.5,
+                end: 202.5,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=10',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 6,
+            },
+            {
+                site: 'Long Knoll',
+                club: 'Avon',
+                start: 157.5,
+                end: 202.5,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=7',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 5,
+            },
+            {
+                site: 'Coward',
+                club: 'Avon',
+                start: 202.5,
+                end: 247.5,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=3',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 5,
+            },
+            {
+                site: 'Spencers',
+                club: 'Avon',
+                start: 190,
+                end: 260,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=12',
+                pgRating: 'Pilot',
+                hgRating: 'Pilot',
+                membership: 'Members',
+                level: 4,
+            },
+            {
+                site: 'Maes Knoll',
+                club: 'Avon',
+                start: 90,
+                end: 135,
+                siteGuideUrl: 'http://avonhgpg.co.uk/sites/sites.php?actionid=2&id=8',
+                pgRating: 'CP',
+                hgRating: 'CP',
+                membership: 'Open',
+                level: 8,
+            }
+        ];
+
+        $('#viewRating').on('click', function () {
+            $('#membershipKey').hide();
+            $('#ratingKey').show();
+            updateChart()
+        });
+        $('#viewSimple').on('click', function () {
+            $('#membershipKey').hide();
+            $('#ratingKey').hide();
+            updateChart()
+        });
+        $('#viewMembership').on('click', function () {
+            $('#membershipKey').show();
+            $('#ratingKey').hide();
+            updateChart()
+        });
+        $('#viewMembershipRating').on('click', function () {
+            $('#membershipKey').show();
+            $('#ratingKey').show();
+            updateChart()
+        });
+        $('#clubSelector').change(function () {
+            updateChart()
+        });
+
+        $('document').ready(() => {
+            var urlParams = new URLSearchParams(window.location.search);
+            var club = urlParams.get('club');
+            if (club != "" || club != 'N/A') {
+                $('#clubSelector').val(club);
+            }
+            var view = urlParams.get('view').toLowerCase();
+            if (view != "" || view != 'N/A') {
+                switch (view) {
+                    case 'membership':
+                        $('#viewMembership').prop('checked', true);
+                    case 'rating':
+                        $('#viewRating').prop('checked', true);
+                    case 'both':
+                        $('#viewMembershipRating').prop('checked', true);
+                    default:
+                }
+            }
+            var simple = $('#viewSimple').is(':checked');
+            var membershipOnly = $('#viewMembership').is(':checked');
+            var ratingOnly = $('#viewRating').is(':checked');
+            var membershipRating = $('#viewMembershipRating').is(':checked');
+            if (simple) {
+                $('#membershipKey').hide();
+                $('#ratingKey').hide();
+            } else if (membershipOnly) {
+                $('#membershipKey').show();
+                $('#ratingKey').hide();
+            } else if (ratingOnly) {
+                $('#membershipKey').hide();
+                $('#ratingKey').show();
+            }
+            updateChart();
+        })
+
+        updateChart();
+
+        function updateChart() {
+            var arcGenerator = d3.arc().cornerRadius(3);
+            var simple = $('#viewSimple').is(':checked');
+            var membershipOnly = $('#viewMembership').is(':checked');
+            var ratingOnly = $('#viewRating').is(':checked');
+            var membershipRating = $('#viewMembershipRating').is(':checked');
+            var club = $('#clubSelector').val().toLowerCase();
+
+            /////////////////////////////////////////////////////////
+            //////////// Create the container SVG and g /////////////
+            /////////////////////////////////////////////////////////
+
+            //Remove whatever chart with the same id/class was present before
+            d3.select('body').select("svg").remove();
+
+            //Initiate the radar chart SVG
+            var svg = d3.select('body').append("svg")
+                .attr('width', width + margin + margin)
+                .attr('height', height + margin + margin)
+                .attr("class", "radar" + 'body');
+
+            var g = svg.append("g")
+                .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
+
+            /////////////////////////////////////////////////////////
+            /////////////// Draw the Circular grid //////////////////
+            /////////////////////////////////////////////////////////
+
+            //Wrapper for the grid & axes
+            var axisGrid = g.append("g").attr("class", "axisWrapper");
+
+            //Draw the background circles
+            axisGrid.selectAll(".levels")
+                .data(d3.range(1, (levels + 1)).reverse())
+                .enter()
+                .append("circle")
+                .attr("class", "gridCircle")
+                .attr("r", function (d, i) { return chartRadius / levels * d; })
+                .style("fill", "white")
+                .style("stroke", "#CDCDCD")
+
+            //Text indicating at what % each level is
+            axisGrid.selectAll(".axisLabel")
+                .data(d3.range(1, (levels + 1)).reverse())
+                .enter().append("text")
+                .attr("class", "axisLabel")
+                .attr("x", 4)
+                .attr("y", function (d) { return -d * chartRadius / levels; })
+                .attr("dy", "0.4em")
+                .style("font-size", "10px")
+                .attr("fill", "#72bede")
+
+            /////////////////////////////////////////////////////////
+            //////////////////// Draw the axes //////////////////////
+            /////////////////////////////////////////////////////////
+
+            //Create the straight lines radiating outward from the center
+            var axis = axisGrid.selectAll(".axis")
+                .data(allAxis2)
+                .enter()
+                .append("g")
+                .attr("class", "axis");
+            //Append the lines
+            axis.append("line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", function (d, i) { return rScale(maxValue * 1.1) * Math.cos(angleSlice * i - Math.PI / 2); })
+                .attr("y2", function (d, i) { return rScale(maxValue * 1.1) * Math.sin(angleSlice * i - Math.PI / 2); })
+                .attr("class", "line")
+                .style("stroke", "black")
+                .style("stroke-width", "1px");
+
+            //Append the labels at each axis
+            axis.append("text")
+                .attr("class", "legend")
+                .style("font-size", "11px")
+                .attr("text-anchor", "middle")
+                .attr("dy", "0.35em")
+                .attr("x", function (d, i) { return rScale(maxValue * labelFactor) * Math.cos(angleSlice * i - Math.PI / 2); })
+                .attr("y", function (d, i) { return rScale(maxValue * labelFactor) * Math.sin(angleSlice * i - Math.PI / 2); })
+                .text(function (d) { return d })
+                .call(wrap, wrapWidth);
+
+            //Add new data
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].club.toLowerCase() == club) {
+                    var pathData = arcGenerator({
+                        startAngle: data[i].start * (Math.PI / 180),
+                        endAngle: data[i].end * (Math.PI / 180),
+                        innerRadius: chartRadius / levels * (data[i].level - 1),
+                        outerRadius: chartRadius / levels * (data[i].level),
+                    });
+                    var firstArcSection = /(^.+?)L/;
+
+                        //The [1] gives back the expression between the () (thus not the L as well)
+                        //which is exactly the arc statement
+                        var newArc = firstArcSection.exec(pathData)[1];
+                        //Replace all the comma's so that IE can handle it -_-
+                        //The g after the / is a modifier that "find all matches rather than
+                        //stopping after the first match"
+                        newArc = newArc.replace(/,/g, " ");
+
+                    if (membershipRating) {
+                        var pathData1 = arcGenerator({
+                            startAngle: data[i].start * (Math.PI / 180),
+                            endAngle: data[i].end * (Math.PI / 180),
+                            innerRadius: chartRadius / levels * (data[i].level - 1),
+                            outerRadius: chartRadius / levels * (data[i].level - 0.5),
+                        });
+                        var pathData2 = arcGenerator({
+                            startAngle: data[i].start * (Math.PI / 180),
+                            endAngle: data[i].end * (Math.PI / 180),
+                            innerRadius: chartRadius / levels * (data[i].level - 0.5),
+                            outerRadius: chartRadius / levels * (data[i].level),
+                        });
+
+                        let arc = g
+                            .append('path')
+                            .attr('d', pathData1)
+                            .attr('class', 'arc')
+                            .attr("id", data[i].site.trim())
+                            .style('fill', membershipColors[data[i].membership]);
+
+                        let arc2 = g
+                            .append('path')
+                            .attr('d', pathData2)
+                            .attr('class', 'arc')
+                            .attr("id", data[i].site.trim())
+                            .style('fill', ratingColors[data[i].pgRating]);
+
+                            g.append("path")
+                            .attr("class", "hiddenDonutArcs")
+                            .attr("id", data[i].site.trim() + "_textArc" + i)
+                            .attr("d", newArc)
+                            .style("fill", "none");
+
+                        g.append('text')
+                            .attr("x", 5) //Move the text from the start angle of the arc
+                            .attr("dy", 20) //Move the text down
+                            .append("textPath")
+                            .attr("startOffset", "50%")
+                            .style("text-anchor", "middle")
+                            .attr("xlink:href", '#' + data[i].site.trim() + "_textArc" + i) //"#" + data[i].site.trim()
+                            .text(data[i].site.toUpperCase())
+                            .style('font-weight', 'bold')
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1px')
+                            .style('fill', 'white');
+
+                        let arc3 = g
+                            .append('path')
+                            .attr('d', pathData)
+                            .attr('class', 'arc')
+                            .attr('text', data[i].siteGuideUrl)
+                            .attr("id", data[i].site.trim() + "_box")
+                            .style('fill-opacity', '0')
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1.5px')
+                            .on('click', function () {
+                                window.open($(this).attr('text'), '_blank');
+                            });
+
+                    } else if (membershipOnly) {
+
+                        let arc2 = g
+                            .append('path')
+                            .attr('d', pathData)
+                            .attr('class', 'arc')
+                            .attr('text', data[i].siteGuideUrl)
+                            .attr("id", data[i].site.trim())
+                            .style('fill', membershipColors[data[i].membership])
+                            .on('click', function () {
+                                window.open($(this).attr('text'), '_blank');
+                            })
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1.5px');
+
+                            g.append("path")
+                            .attr("class", "hiddenDonutArcs")
+                            .attr("id", data[i].site.trim() + "_textArc" + i)
+                            .attr("d", newArc)
+                            .style("fill", "none");
+
+                        g.append('text')
+                            .attr('class', 'text')
+                            .attr("x", 5) //Move the text from the start angle of the arc
+                            .attr("dy", 20) //Move the text down
+                            .append("textPath")
+                            .attr("startOffset", "50%")
+                            .style("text-anchor", "middle")
+                            .attr("xlink:href", '#' + data[i].site.trim() + "_textArc" + i) //"#" + data[i].site.trim()
+                            .text(data[i].site.toUpperCase())
+                            .style('font-weight', 'bold')
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1px')
+                            .style('fill', 'white');
+
+                    } else if (ratingOnly) {
+
+                        let arc2 = g
+                            .append('path')
+                            .attr('d', pathData)
+                            .attr('class', 'arc')
+                            .attr('text', data[i].siteGuideUrl)
+                            .attr("id", data[i].site.trim())
+                            .style('fill', ratingColors[data[i].pgRating])
+                            .on('click', function () {
+                                window.open($(this).attr('text'), '_blank');
+                            })
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1.5px');
+
+                            g.append("path")
+                            .attr("class", "hiddenDonutArcs")
+                            .attr("id", data[i].site.trim() + "_textArc" + i)
+                            .attr("d", newArc)
+                            .style("fill", "none");
+
+                        g.append('text')
+                            .attr('class', 'text')
+                            .attr("x", 5) //Move the text from the start angle of the arc
+                            .attr("dy", 20) //Move the text down
+                            .append("textPath")
+                            .attr("startOffset", "50%")
+                            .style("text-anchor", "middle")
+                            .attr("xlink:href", '#' + data[i].site.trim() + "_textArc" + i) //"#" + data[i].site.trim()
+                            .text(data[i].site.toUpperCase())
+                            .style('font-weight', 'bold')
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1px')
+                            .style('fill', 'white');
+
+                    } else if (simple) {
+
+                        let arc2 = g
+                            .append('path')
+                            .attr('d', pathData)
+                            .attr('class', 'arc')
+                            .attr('text', data[i].siteGuideUrl)
+                            .attr("id", data[i].site.trim())
+                            .style('fill', 'lightsteelblue')
+                            .on('click', function () {
+                                window.open($(this).attr('text'), '_blank');
+                            })
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1.5px')
+
+
+                        g.append("path")
+                            .attr("class", "hiddenDonutArcs")
+                            .attr("id", data[i].site.trim() + "_textArc" + i)
+                            .attr("d", newArc)
+                            .style("fill", "none");
+
+
+                        g.append('text')
+                            .attr('class', 'text')
+                            .attr("x", 5) //Move the text from the start angle of the arc 5
+                            .attr("dy", 20) //Move the text down
+                            .append("textPath")
+                            .attr("startOffset", "50%")
+                            .style("text-anchor", "middle")
+                            .attr("xlink:href", '#' + data[i].site.trim() + "_textArc" + i) //"#" + data[i].site.trim()
+                            .text(data[i].site.toUpperCase())
+                            .style('font-weight', 'bold')
+                            .style('stroke', 'black')
+                            .style('stroke-width', '1px')
+                            .style('fill', 'white');
+
+                    }
+                }
+            };
+        }
+        /// ADDITIONAL SCRIPT
+
+
+        function wrap(text, width) {
+            text.each(function () {
+                var text = d3.select(this),
+                    words = text.text().split(/\s+/).reverse(),
+                    word,
+                    line = [],
+                    lineNumber = 0,
+                    lineHeight = 1.4, // ems
+                    y = text.attr("y"),
+                    x = text.attr("x"),
+                    dy = parseFloat(text.attr("dy")),
+                    tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+
+                while (word = words.pop()) {
+                    line.push(word);
+                    tspan.text(line.join(" "));
+                    if (tspan.node().getComputedTextLength() > width) {
+                        line.pop();
+                        tspan.text(line.join(" "));
+                        line = [word];
+                        tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                    }
+                }
+            });
+        }//wrap	
+
+    </script>
+</body>
+
+</html>
